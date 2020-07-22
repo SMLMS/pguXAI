@@ -17,12 +17,42 @@ The explained variance ratio is calculated
 and used to indicate the optimal number of components for a pca.
 }
 \examples{
-data_df <- iris \%>\%
-   dplyr::select(-Species)
-ca <- pguXAI::componentAnalysis.pca$new(thr = 0.99, verbose=FALSE)
-ca$train(obj=data_df)
-print(ca)
-plot(ca)
+library(tidyverse)
+library(pguXAI)
+
+main = function(){
+  # load data set and remove class labels
+  df_data <- iris \%>\%
+    dplyr::select(-Species)
+
+  # define true class labels
+  classes_true <- iris$Species
+
+  # run principle component analysis
+  ca <- pguXAI::componentAnalysis.pca$new()
+  ca$train(obj=df_data)
+
+  # plot results
+  ca$evr_overview_plot()
+
+  ca$evr_detail_plot() \%>\%
+    show()
+
+  ca$cos2_corrplot() \%>\%
+    show()
+
+  ca$cos2_barplot()
+
+  ca$contrib_corrplot() \%>\%
+    show()
+
+  ca$contrib_barplot()
+
+  fin <- "done"
+  fin
+}
+
+main()
 
 }
 \author{
@@ -31,11 +61,8 @@ Sebastian Malkusch, \email{malkusch@med.uni-frankfurt.de}
 \section{Active bindings}{
 \if{html}{\out{<div class="r6-active-bindings">}}
 \describe{
-\item{\code{threshold}}{Returns the instance variable threshold
-(numeric)}
-
-\item{\code{setThreshold}}{Sets the instance variable threshold
-(numeric)}
+\item{\code{rslt_pca}}{Returns the instance variable rslt.pca
+(list)}
 
 \item{\code{df_pca}}{Returns the instance variable df_pca
 (tibble::tibble)}
@@ -55,10 +82,12 @@ Sebastian Malkusch, \email{malkusch@med.uni-frankfurt.de}
 \item \href{#method-finalize}{\code{componentAnalysis.pca$finalize()}}
 \item \href{#method-print}{\code{componentAnalysis.pca$print()}}
 \item \href{#method-train}{\code{componentAnalysis.pca$train()}}
-\item \href{#method-sd_plot}{\code{componentAnalysis.pca$sd_plot()}}
-\item \href{#method-evr_plot}{\code{componentAnalysis.pca$evr_plot()}}
-\item \href{#method-cumSumEvr_plot}{\code{componentAnalysis.pca$cumSumEvr_plot()}}
-\item \href{#method-plot}{\code{componentAnalysis.pca$plot()}}
+\item \href{#method-evr_overview_plot}{\code{componentAnalysis.pca$evr_overview_plot()}}
+\item \href{#method-evr_detail_plot}{\code{componentAnalysis.pca$evr_detail_plot()}}
+\item \href{#method-cos2_corrplot}{\code{componentAnalysis.pca$cos2_corrplot()}}
+\item \href{#method-cos2_barplot}{\code{componentAnalysis.pca$cos2_barplot()}}
+\item \href{#method-contrib_corrplot}{\code{componentAnalysis.pca$contrib_corrplot()}}
+\item \href{#method-contrib_barplot}{\code{componentAnalysis.pca$contrib_barplot()}}
 \item \href{#method-clone}{\code{componentAnalysis.pca$clone()}}
 }
 }
@@ -68,16 +97,12 @@ Sebastian Malkusch, \email{malkusch@med.uni-frankfurt.de}
 \subsection{Method \code{new()}}{
 Creates and returns a new componentAnalysis.pca object.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{componentAnalysis.pca$new(thr = 0.95, verbose = FALSE)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{componentAnalysis.pca$new(verbose = FALSE)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{thr}}{An initial threshold.
-Default is 0.95
-(numeric)}
-
 \item{\code{verbose}}{Makes the class chatty.
 Default is FALSE.
 (logical)}
@@ -132,55 +157,81 @@ trains the model
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-sd_plot"></a>}}
-\if{latex}{\out{\hypertarget{method-sd_plot}{}}}
-\subsection{Method \code{sd_plot()}}{
-Plots standard deviation of detected compenents.
+\if{html}{\out{<a id="method-evr_overview_plot"></a>}}
+\if{latex}{\out{\hypertarget{method-evr_overview_plot}{}}}
+\subsection{Method \code{evr_overview_plot()}}{
+Plots the explained variance ration of the analysis.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{componentAnalysis.pca$sd_plot()}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{componentAnalysis.pca$evr_overview_plot()}\if{html}{\out{</div>}}
 }
 
 \subsection{Returns}{
-(list)
+(ggplot2::ggplot)
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-evr_plot"></a>}}
-\if{latex}{\out{\hypertarget{method-evr_plot}{}}}
-\subsection{Method \code{evr_plot()}}{
-Plots the explained variance ratio of the components
+\if{html}{\out{<a id="method-evr_detail_plot"></a>}}
+\if{latex}{\out{\hypertarget{method-evr_detail_plot}{}}}
+\subsection{Method \code{evr_detail_plot()}}{
+Plots the eigenvalues of the analysis.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{componentAnalysis.pca$evr_plot()}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{componentAnalysis.pca$evr_detail_plot()}\if{html}{\out{</div>}}
 }
 
 \subsection{Returns}{
-(list)
+(ggplot2::ggplot)
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-cumSumEvr_plot"></a>}}
-\if{latex}{\out{\hypertarget{method-cumSumEvr_plot}{}}}
-\subsection{Method \code{cumSumEvr_plot()}}{
-Plots the cummulative sum of the explained variance ratio of the components
+\if{html}{\out{<a id="method-cos2_corrplot"></a>}}
+\if{latex}{\out{\hypertarget{method-cos2_corrplot}{}}}
+\subsection{Method \code{cos2_corrplot()}}{
+Plots the quality of representation of the variables on factor map.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{componentAnalysis.pca$cumSumEvr_plot()}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{componentAnalysis.pca$cos2_corrplot()}\if{html}{\out{</div>}}
 }
 
 \subsection{Returns}{
-(list)
+(ggplot2::ggplot)
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-plot"></a>}}
-\if{latex}{\out{\hypertarget{method-plot}{}}}
-\subsection{Method \code{plot()}}{
-Plots the analysis result.
+\if{html}{\out{<a id="method-cos2_barplot"></a>}}
+\if{latex}{\out{\hypertarget{method-cos2_barplot}{}}}
+\subsection{Method \code{cos2_barplot()}}{
+Plots the quality of representation of the variables on factor map.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{componentAnalysis.pca$plot()}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{componentAnalysis.pca$cos2_barplot()}\if{html}{\out{</div>}}
 }
 
 \subsection{Returns}{
-(list)
+(ggplot2::ggplot)
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-contrib_corrplot"></a>}}
+\if{latex}{\out{\hypertarget{method-contrib_corrplot}{}}}
+\subsection{Method \code{contrib_corrplot()}}{
+Maps the attributes contribution to each component.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{componentAnalysis.pca$contrib_corrplot()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+(ggplot2::ggplot)
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-contrib_barplot"></a>}}
+\if{latex}{\out{\hypertarget{method-contrib_barplot}{}}}
+\subsection{Method \code{contrib_barplot()}}{
+Plots the quality of representation of the variables on factor map.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{componentAnalysis.pca$contrib_barplot()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+(ggplot2::ggplot)
 }
 }
 \if{html}{\out{<hr>}}

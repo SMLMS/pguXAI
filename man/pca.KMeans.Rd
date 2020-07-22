@@ -13,22 +13,70 @@ Performs KMeans clustering on a given pca dataset.
 Performs KMeans clustering on a given pca dataset.
 }
 \examples{
+library(tidyverse)
+library(pguXAI)
+library(FactoMineR)
+library(caret)
 
-data_df <- iris \%>\%
-   dplyr::select(-Species)
+main = function(){
+  # load data set and remove class labels
+  df_data <- iris \%>\%
+    dplyr::select(-Species)
 
-nComponents <- 2
-PreProcessor <- caret::preProcess(x=df_data, method=c("center", "scale", "pca"), pcaComp = nComponents)
-df_pred <- predict(PreProcessor, df_data)
+  # define true class labels
+  classes_true <- iris$Species
 
-km <- pguXAI::pca.KMeans$new(n=3, seed = 42, verbose = TRUE)
-km$train(obj = df_pred, n = 100)
+  # define nuber of components for pca and number of clusters for kmeans
+  nComponents <- 2
+  nCluster <- 3
 
-km$probHist_plot() \%>\%
-  plot()
-km$cluster_plot(obj = df_pred)
-km$df_centers \%>\%
-  print()
+  # pre-scale the data for pca
+  PreProcessor <- caret::preProcess(x=df_data, method=c("center", "scale"), pcaComp = nComponents)
+  df_scaled <- predict(PreProcessor, df_data)
+
+  # reduce dimensions of sclaed dataset using pca
+  rslt_pca <- df_scaled \%>\%
+    FactoMineR::PCA(ncp = nComponents, scale.unit = FALSE, graph = FALSE)
+  df_pred <- as.data.frame(predict(rslt_pca, df_scaled)$coord)
+
+  # run kmeans analysis
+  km <- pguXAI::pca.KMeans$new(n=nCluster, seed = 42, verbose = TRUE)
+  km$train(obj = df_pred, n = 100)
+
+  # plot results
+  km$probHist_plot() \%>\%
+    plot()
+
+  km$cluster_plot(obj = df_pred)
+
+  km$silhouette_plot(obj = df_pred) \%>\%
+    plot()
+
+  print("Result of silhouette analysis:")
+  km$df_silhouette \%>\%
+    print()
+
+  print("Average silhouette width:")
+  km$av_sil_width \%>\%
+    print()
+
+  print("Centers of clusters:")
+  km$df_centers \%>\%
+    print()
+
+  print("Probability of the class label assignment:")
+  km$predProb \%>\%
+    print()
+
+  print("Majority vote of the class label assignment:")
+  km$predClass \%>\%
+    print()
+
+  fin <- "done"
+  fin
+}
+
+main()
 
 }
 \author{
@@ -61,6 +109,12 @@ Sebastian Malkusch, \email{malkusch@med.uni-frankfurt.de}
 \item{\code{df_centers}}{Returns the instance variable df_centers
 (tbl_df)}
 
+\item{\code{df_silhouette}}{Returns the instance variable df_silhouette
+(tbl_df)}
+
+\item{\code{av_sil_width}}{Returns the instance variable av_sil_width
+(numeric)}
+
 \item{\code{verbose}}{Returns the instance variable verbose
 (logical)}
 }
@@ -75,6 +129,7 @@ Sebastian Malkusch, \email{malkusch@med.uni-frankfurt.de}
 \item \href{#method-train}{\code{pca.KMeans$train()}}
 \item \href{#method-cluster_kmeans}{\code{pca.KMeans$cluster_kmeans()}}
 \item \href{#method-cluster_statistics}{\code{pca.KMeans$cluster_statistics()}}
+\item \href{#method-silhouette_analysis}{\code{pca.KMeans$silhouette_analysis()}}
 \item \href{#method-probHist_plot}{\code{pca.KMeans$probHist_plot()}}
 \item \href{#method-cluster_plot}{\code{pca.KMeans$cluster_plot()}}
 \item \href{#method-silhouette_plot}{\code{pca.KMeans$silhouette_plot()}}
@@ -195,6 +250,26 @@ Performs iterative kMeans step.
 Not to run by the user.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{pca.KMeans$cluster_statistics(obj = "tbl_df")}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{obj}}{The data to be analyzed.
+Needs to be the result of a pca analysis.
+(tibble::tibble)}
+}
+\if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-silhouette_analysis"></a>}}
+\if{latex}{\out{\hypertarget{method-silhouette_analysis}{}}}
+\subsection{Method \code{silhouette_analysis()}}{
+Performs a silouette analysis.
+Not to run by the user.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{pca.KMeans$silhouette_analysis(obj = "tbl_df")}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{

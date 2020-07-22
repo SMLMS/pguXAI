@@ -14,26 +14,75 @@
 #' @import GGally
 #' @import cluster
 #' @import factoextra
+#' @import flexclust
 #'
 #' @author Sebastian Malkusch, \email{malkusch@@med.uni-frankfurt.de}
 #'
 #' @examples
+#' library(tidyverse)
+#' library(pguXAI)
+#' library(FactoMineR)
+#' library(caret)
 #'
-#' data_df <- iris %>%
-#'    dplyr::select(-Species)
+#' main = function(){
+#'   # load data set and remove class labels
+#'   df_data <- iris %>%
+#'     dplyr::select(-Species)
 #'
-#' nComponents <- 2
-#' PreProcessor <- caret::preProcess(x=df_data, method=c("center", "scale", "pca"), pcaComp = nComponents)
-#' df_pred <- predict(PreProcessor, df_data)
+#'   # define true class labels
+#'   classes_true <- iris$Species
 #'
-#' km <- pguXAI::pca.KMeans$new(n=3, seed = 42, verbose = TRUE)
-#' km$train(obj = df_pred, n = 100)
+#'   # define nuber of components for pca and number of clusters for kmeans
+#'   nComponents <- 2
+#'   nCluster <- 3
 #'
-#' km$probHist_plot() %>%
-#'   plot()
-#' km$cluster_plot(obj = df_pred)
-#' km$df_centers %>%
-#'   print()
+#'   # pre-scale the data for pca
+#'   PreProcessor <- caret::preProcess(x=df_data, method=c("center", "scale"), pcaComp = nComponents)
+#'   df_scaled <- predict(PreProcessor, df_data)
+#'
+#'   # reduce dimensions of sclaed dataset using pca
+#'   rslt_pca <- df_scaled %>%
+#'     FactoMineR::PCA(ncp = nComponents, scale.unit = FALSE, graph = FALSE)
+#'   df_pred <- as.data.frame(predict(rslt_pca, df_scaled)$coord)
+#'
+#'   # run kmeans analysis
+#'   km <- pguXAI::pca.KMeans$new(n=nCluster, seed = 42, verbose = TRUE)
+#'   km$train(obj = df_pred, n = 100)
+#'
+#'   # plot results
+#'   km$probHist_plot() %>%
+#'     plot()
+#'
+#'   km$cluster_plot(obj = df_pred)
+#'
+#'   km$silhouette_plot(obj = df_pred) %>%
+#'     plot()
+#'
+#'   print("Result of silhouette analysis:")
+#'   km$df_silhouette %>%
+#'     print()
+#'
+#'   print("Average silhouette width:")
+#'   km$av_sil_width %>%
+#'     print()
+#'
+#'   print("Centers of clusters:")
+#'   km$df_centers %>%
+#'     print()
+#'
+#'   print("Probability of the class label assignment:")
+#'   km$predProb %>%
+#'     print()
+#'
+#'   print("Majority vote of the class label assignment:")
+#'   km$predClass %>%
+#'     print()
+#'
+#'   fin <- "done"
+#'   fin
+#' }
+#'
+#' main()
 #'
 #' @export
 #'
@@ -49,6 +98,8 @@ pca.KMeans <- R6::R6Class("pca.KMeans",
                             .predProb = "matrix",
                             .predClass = "factor",
                             .df_centers = "tbl_df",
+                            .df_silhouette = "tbl_df",
+                            .av_sil_width = "numeric",
                             .verbose = "logical"
                           ), # private
                           ##################
@@ -127,6 +178,18 @@ pca.KMeans <- R6::R6Class("pca.KMeans",
                             df_centers = function(){
                               return(private$.df_centers)
                             },
+                            #' @field df_silhouette
+                            #' Returns the instance variable df_silhouette
+                            #' (tbl_df)
+                            df_silhouette = function(){
+                              return(private$.df_silhouette)
+                            },
+                            #' @field av_sil_width
+                            #' Returns the instance variable av_sil_width
+                            #' (numeric)
+                            av_sil_width = function(){
+                              return(private$.av_sil_width)
+                            },
                             #' @field verbose
                             #' Returns the instance variable verbose
                             #' (logical)
@@ -197,10 +260,13 @@ pca.KMeans <- R6::R6Class("pca.KMeans",
                             train = function(obj = "tbl_df", n = 100){
                               # inital run to set up class names
                               set.seed(self$seed)
-                              cluster_rslt <- obj %>%
-                                stats::kmeans(centers = self$nCenters, nstart = 20)
-
-                              classes_init <- self$level[cluster_rslt$cluster] %>%
+                              # cluster_rslt <- obj %>%
+                              #   stats::kmeans(centers = self$nCenters, nstart = 20)
+                              #
+                              # classes_init <- self$level[cluster_rslt$cluster] %>%
+                              #   factor(levels = self$level)
+                              obj_kmeans <- flexclust::kcca(obj, k=self$nCenters, family=kccaFamily("kmeans"), simple = TRUE)
+                              classes_init <- self$level[flexclust::clusters(obj_kmeans)] %>%
                                 factor(levels = self$level)
 
                               # iterative training
@@ -224,6 +290,7 @@ pca.KMeans <- R6::R6Class("pca.KMeans",
                               private$.predClass <- factor(self$level[apply(self$predProb, 1, which.max)], levels=self$level)
 
                               self$cluster_statistics(obj)
+                              self$silhouette_analysis(obj)
                             }, #train
                             #' @description
                             #' Performs iterative kMeans step.
@@ -240,16 +307,18 @@ pca.KMeans <- R6::R6Class("pca.KMeans",
                             #' (integer)
                             cluster_kmeans = function(obj = "tbl_df", classes_init = "factor", n = "integer"){
                               set.seed(self$seed+n)
-                              cluster_rslt<- obj %>%
-                                stats::kmeans(centers = self$nCenters, nstart = 1)
+                              # cluster_rslt<- obj %>%
+                              #   stats::kmeans(centers = self$nCenters, nstart = 1)
+                              cluster_rslt <- flexclust::kcca(obj, k=self$nCenters, family=kccaFamily("kmeans"), simple = TRUE) %>%
+                                flexclust::clusters()
 
-                              cross_cl_table <- table(cluster_rslt$cluster, classes_init)
+                              cross_cl_table <- table(cluster_rslt, classes_init)
 
                               maxIdx <- apply(cross_cl_table, 1, function(x) which.max(x))
 
                               colnames_rslt <- colnames(cross_cl_table)[maxIdx]
 
-                              classes_pred <- factor(colnames_rslt[cluster_rslt$cluster], levels = self$level)
+                              classes_pred <- factor(colnames_rslt[cluster_rslt], levels = self$level)
 
                               return(classes_pred)
                             }, #cluster_kmeans
@@ -267,6 +336,7 @@ pca.KMeans <- R6::R6Class("pca.KMeans",
 
                               df_statistics <- NULL
 
+
                               for (className in self$level){
                                 df_temp <- df_data %>%
                                   dplyr::filter(class == className) %>%
@@ -279,18 +349,28 @@ pca.KMeans <- R6::R6Class("pca.KMeans",
                                   tibble::as_tibble() %>%
                                   dplyr::mutate(class = className)
 
+
                                 class_vector <- c()
                                 comp_vector <- c()
                                 low_bound_vector <- c()
                                 high_bound_vector <- c()
-                                for (compName in colnames(df_temp)){
-                                  test_rslt <- df_temp %>%
-                                    dplyr::select(compName) %>%
-                                    stats::t.test()
-                                  class_vector <- append(class_vector,className)
-                                  comp_vector <- append(comp_vector, compName)
-                                  low_bound_vector <- append(low_bound_vector, test_rslt$conf.int[1])
-                                  high_bound_vector <- append(high_bound_vector, test_rslt$conf.int[2])
+                                if(nrow(df_temp) > 0){
+                                  for (compName in colnames(df_temp)){
+                                    test_rslt <- df_temp %>%
+                                      dplyr::select(compName) %>%
+                                      stats::t.test()
+                                    class_vector <- append(class_vector,className)
+                                    comp_vector <- append(comp_vector, compName)
+                                    low_bound_vector <- append(low_bound_vector, test_rslt$conf.int[1])
+                                    high_bound_vector <- append(high_bound_vector, test_rslt$conf.int[2])
+                                  }
+                                } else {
+                                  for (compName in colnames(df_temp)){
+                                    class_vector <- append(class_vector,className)
+                                    comp_vector <- append(comp_vector, compName)
+                                    low_bound_vector <- append(low_bound_vector, NA)
+                                    high_bound_vector <- append(high_bound_vector, NA)
+                                  }
                                 }
 
                                 df_conf <- tibble::tibble(class = class_vector,
@@ -308,6 +388,33 @@ pca.KMeans <- R6::R6Class("pca.KMeans",
                               private$.df_centers <- df_statistics
 
                             }, #cluster_statistics
+                            #' @description
+                            #' Performs a silouette analysis.
+                            #' Not to run by the user.
+                            #' @param obj
+                            #' The data to be analyzed.
+                            #' Needs to be the result of a pca analysis.
+                            #' (tibble::tibble)
+                            silhouette_analysis = function(obj = "tbl_df"){
+                              dist_mat <- stats::dist(obj, method = "euclidean")
+
+                              sil <- self$predClass %>%
+                                match(self$level) %>%
+                                cluster::silhouette(dist_mat) %>%
+                                abs()
+
+                              sil_sum <- summary(sil)
+                              class_names <- dimnames(sil_sum$clus.avg.widths) %>%
+                                lapply( function(x) sprintf("Class_%s", x)) %>%
+                                unlist()
+
+                              private$.df_silhouette <- tibble::tibble(class = class_names) %>%
+                                dplyr::mutate(size_abs = as.integer(sil_sum$clus.sizes)) %>%
+                                dplyr::mutate(size_rel = size_abs / sum(size_abs)) %>%
+                                dplyr::mutate(sil_width = sil_sum$clus.avg.widths)
+
+                              private$.av_sil_width <- sil_sum$avg.width
+                            },
                             ################
                             # plot functions
                             ################
@@ -324,7 +431,13 @@ pca.KMeans <- R6::R6Class("pca.KMeans",
                                 ggplot2::ggplot() +
                                 ggplot2::facet_wrap(~variable,scales = "free_x", ncol = ceiling(sqrt(self$nCenters))) +
                                 ggplot2::geom_histogram(mapping = ggplot2::aes(x=value), binwidth = 0.05) +
-                                ggplot2::labs(x = "probability", y="occurrence [%]", title = "Class Probability Distribution")
+                                ggplot2::scale_x_continuous(n.breaks = 3) +
+                                ggplot2::scale_y_continuous(n.breaks = 3) +
+                                ggplot2::labs(x = "probability", y="occurrence", title = "Class Probability Distribution") +
+                                ggplot2::theme(plot.title = element_text(size=18),
+                                               axis.text=element_text(size=10),
+                                               axis.title=element_text(size=12)) %>%
+                                return()
                             },
                             #' @description
                             #' Plots Clustering Result in all pca dimensions
@@ -335,11 +448,11 @@ pca.KMeans <- R6::R6Class("pca.KMeans",
                             #' @return
                             #' (list)
                             cluster_plot = function(obj = "tbl_df"){
-                              p_ <- GGally::print_if_interactive
-                              obj %>%
+                              p <- obj %>%
                                 dplyr::mutate(class = self$predClass) %>%
                                 GGally::ggpairs(mapping=ggplot2::aes(colour = class), title = "Cluster structure (kMeans)") %>%
-                                p_()
+                                GGally::print_if_interactive()
+                              return(p)
                             }, #cluster_plot
                             #' @description
                             #' Plots Silhouette analysis
@@ -351,12 +464,25 @@ pca.KMeans <- R6::R6Class("pca.KMeans",
                             #' (list)
                             silhouette_plot = function(obj = "tbl_df"){
                               dist_mat <- stats::dist(obj, method = "euclidean")
+
                               sil <- self$predClass %>%
                                 match(self$level) %>%
-                                cluster::silhouette(dist_mat)
+                                cluster::silhouette(dist_mat) %>%
+                                abs()
+
                               factoextra::fviz_silhouette(sil) +
-                                ggplot2::scale_fill_discrete(name = "Cluster", labels = self$level) +
-                                ggplot2::guides(col=FALSE)
+                                #ggplot2::scale_fill_discrete(name = "Cluster", labels = self$level) +
+                                ggplot2::guides(col=FALSE) +
+                                ggplot2::theme_minimal() +
+                                ggplot2::theme(plot.title = element_text(size=18),
+                                               axis.text.y=element_text(size=10),
+                                               axis.title.y=element_text(size=12),
+                                               axis.ticks = element_blank(),
+                                               axis.text.x = element_blank(),
+                                               axis.title.x = element_blank(),
+                                               panel.grid.major = element_blank(),
+                                               panel.grid.minor = element_blank()
+                                )
                             }
                           )#public
 )#pca.KMeans
