@@ -34,7 +34,7 @@
 #'
 #'   # define nuber of components for pca and number of clusters for kmeans
 #'   nComponents <- 2
-#'   nCluster <- 3
+#'   nCluster <- 10
 #'
 #'   # pre-scale the data for pca
 #'   PreProcessor <- caret::preProcess(x=df_data, method=c("center", "scale"), pcaComp = nComponents)
@@ -47,11 +47,7 @@
 #'
 #'   # run kmeans analysis
 #'   km <- pguXAI::pca.KMeans$new(n=nCluster, seed = 42, verbose = TRUE)
-#'   km$train(obj = df_pred, n = 100)
-#'
-#'   # plot results
-#'   km$probHist_plot() %>%
-#'     plot()
+#'   km$train(obj = df_pred)
 #'
 #'   km$cluster_plot(obj = df_pred)
 #'
@@ -78,6 +74,13 @@
 #'   km$predClass %>%
 #'     print()
 #'
+#'   print("Within cluster sum of squares analysis:")
+#'   km$df_withinss %>%
+#'     print()
+#'
+#'   km$tot_withinss %>%
+#'     print()
+#'
 #'   fin <- "done"
 #'   fin
 #' }
@@ -95,11 +98,12 @@ pca.KMeans <- R6::R6Class("pca.KMeans",
                             .seed = "integer",
                             .nCenters = "integer",
                             .level = "character",
-                            .predProb = "matrix",
                             .predClass = "factor",
                             .df_centers = "tbl_df",
                             .df_silhouette = "tbl_df",
                             .av_sil_width = "numeric",
+                            .av_withinss = "tbl_df",
+                            .tot_withinss = "numeric",
                             .verbose = "logical"
                           ), # private
                           ##################
@@ -160,12 +164,6 @@ pca.KMeans <- R6::R6Class("pca.KMeans",
                             level = function(){
                               return(private$.level)
                             },
-                            #' @field predProb
-                            #' Returns th instance variable predProb
-                            #' (matrix)
-                            predProb = function(){
-                              return(private$.predProb)
-                            },
                             #' @field predClass
                             #' Returns the instance variable predClass
                             #' (factor)
@@ -189,6 +187,18 @@ pca.KMeans <- R6::R6Class("pca.KMeans",
                             #' (numeric)
                             av_sil_width = function(){
                               return(private$.av_sil_width)
+                            },
+                            #' @field av_withinss
+                            #' Returns the instance variable av_withinss
+                            #' (tbl_df)
+                            av_withinss = function(){
+                              return(private$.av_withinss)
+                            },
+                            #' @field tot_withinss
+                            #' Returns the instance variable tot_withinss
+                            #' (numeric)
+                            tot_withinss = function(){
+                              return(private$.tot_withinss)
                             },
                             #' @field verbose
                             #' Returns the instance variable verbose
@@ -254,76 +264,28 @@ pca.KMeans <- R6::R6Class("pca.KMeans",
                             #' The data to be analyzed.
                             #' Needs to be the result of a pca analysis.
                             #' (tibble::tibble)
-                            #' @param n
-                            #' Indicates the number of training iterations
-                            #' (integer)
-                            train = function(obj = "tbl_df", n = 100){
-                              # inital run to set up class names
+                            train = function(obj = "tbl_df"){
                               set.seed(self$seed)
-                              # cluster_rslt <- obj %>%
-                              #   stats::kmeans(centers = self$nCenters, nstart = 20)
-                              #
-                              # classes_init <- self$level[cluster_rslt$cluster] %>%
-                              #   factor(levels = self$level)
-                              obj_kmeans <- flexclust::kcca(obj, k=self$nCenters, family=kccaFamily("kmeans"), simple = TRUE)
-                              classes_init <- self$level[flexclust::clusters(obj_kmeans)] %>%
-                                factor(levels = self$level)
 
-                              # iterative training
-                              df_predict <- tibble::tibble(measurement = seq(nrow(obj)))
+                              cluster_obj <- flexclust::kcca(obj, k=self$nCenters, family=kccaFamily("kmeans"))
 
-                              for (i in seq(n)){
-                                col_name <- sprintf("pred_%i", i)
-                                classes_pred <- self$cluster_kmeans(obj, classes_init, i)
-                                df_predict <- df_predict %>%
-                                  dplyr::mutate(!!col_name := classes_pred)
-                              }
+                              cluster_rslt <- cluster_obj %>%
+                                flexclust::clusters()
 
-                              df_predict <- df_predict %>%
-                                dplyr::select(-c("measurement"))
-
-                              # log training results into instance variables
-                              private$.predProb <- df_predict %>%
-                                apply(1, function(x) summary(factor(x, levels=self$level))/sum(summary(factor(x, levels=self$level)))) %>%
-                                t()
-
-                              private$.predClass <- factor(self$level[apply(self$predProb, 1, which.max)], levels=self$level)
+                              private$.predClass <- factor(self$level[cluster_rslt], levels = self$level)
 
                               self$cluster_statistics(obj)
                               self$silhouette_analysis(obj)
+
+                              private$.tot_withinss <- cluster_obj %>%
+                                flexclust::info("distsum")
+
+                              private$.av_withinss <- cluster_obj %>%
+                                flexclust::info("av_dist") %>%
+                                as.data.frame()
                             }, #train
                             #' @description
-                            #' Performs iterative kMeans step.
-                            #' Not to run by the user.
-                            #' @param obj
-                            #' The data to be analyzed.
-                            #' Needs to be the result of a pca analysis.
-                            #' (tibble::tibble)
-                            #' @param classes_init
-                            #' Contains the true class labels of the data in obj
-                            #' (factor)
-                            #' @param n
-                            #' Indicates the number of training iterations
-                            #' (integer)
-                            cluster_kmeans = function(obj = "tbl_df", classes_init = "factor", n = "integer"){
-                              set.seed(self$seed+n)
-                              # cluster_rslt<- obj %>%
-                              #   stats::kmeans(centers = self$nCenters, nstart = 1)
-                              cluster_rslt <- flexclust::kcca(obj, k=self$nCenters, family=kccaFamily("kmeans"), simple = TRUE) %>%
-                                flexclust::clusters()
-
-                              cross_cl_table <- table(cluster_rslt, classes_init)
-
-                              maxIdx <- apply(cross_cl_table, 1, function(x) which.max(x))
-
-                              colnames_rslt <- colnames(cross_cl_table)[maxIdx]
-
-                              classes_pred <- factor(colnames_rslt[cluster_rslt], levels = self$level)
-
-                              return(classes_pred)
-                            }, #cluster_kmeans
-                            #' @description
-                            #' Performs iterative kMeans step.
+                            #' Performs cluster analysis step..
                             #' Not to run by the user.
                             #' @param obj
                             #' The data to be analyzed.
@@ -354,7 +316,7 @@ pca.KMeans <- R6::R6Class("pca.KMeans",
                                 comp_vector <- c()
                                 low_bound_vector <- c()
                                 high_bound_vector <- c()
-                                if(nrow(df_temp) > 0){
+                                if(nrow(df_temp) > 1){
                                   for (compName in colnames(df_temp)){
                                     test_rslt <- df_temp %>%
                                       dplyr::select(compName) %>%
@@ -418,27 +380,6 @@ pca.KMeans <- R6::R6Class("pca.KMeans",
                             ################
                             # plot functions
                             ################
-                            #' @description
-                            #' Plots a histogram of Class probability.
-                            #' @return
-                            #' (list)
-                            probHist_plot = function(){
-                              self$predProb %>%
-                                as.data.frame() %>%
-                                tibble::as_tibble() %>%
-                                dplyr::mutate(id = seq(nrow(self$predProb))) %>%
-                                reshape2::melt(id.vars = "id") %>%
-                                ggplot2::ggplot() +
-                                ggplot2::facet_wrap(~variable,scales = "free_x", ncol = ceiling(sqrt(self$nCenters))) +
-                                ggplot2::geom_histogram(mapping = ggplot2::aes(x=value), binwidth = 0.05) +
-                                ggplot2::scale_x_continuous(n.breaks = 3) +
-                                ggplot2::scale_y_continuous(n.breaks = 3) +
-                                ggplot2::labs(x = "probability", y="occurrence", title = "Class Probability Distribution") +
-                                ggplot2::theme(plot.title = element_text(size=18),
-                                               axis.text=element_text(size=10),
-                                               axis.title=element_text(size=12)) %>%
-                                return()
-                            },
                             #' @description
                             #' Plots Clustering Result in all pca dimensions
                             #' @param obj

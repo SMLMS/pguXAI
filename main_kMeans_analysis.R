@@ -13,7 +13,7 @@ main = function(){
 
   # define nuber of components for pca and number of clusters for kmeans
   nComponents <- 2
-  nCluster <- 3
+  nCluster <- 10
 
   # pre-scale the data for pca
   PreProcessor <- caret::preProcess(x=df_data, method=c("center", "scale"), pcaComp = nComponents)
@@ -26,11 +26,7 @@ main = function(){
 
   # run kmeans analysis
   km <- pguXAI::pca.KMeans$new(n=nCluster, seed = 42, verbose = TRUE)
-  km$train(obj = df_pred, n = 100)
-
-  # plot results
-  km$probHist_plot() %>%
-    plot()
+  km$train(obj = df_pred)
 
   km$cluster_plot(obj = df_pred)
 
@@ -55,6 +51,13 @@ main = function(){
 
   print("Majority vote of the class label assignment:")
   km$predClass %>%
+    print()
+
+  print("Within cluster sum of squares analysis:")
+  km$df_withinss %>%
+    print()
+
+  km$tot_withinss %>%
     print()
 
   fin <- "done"

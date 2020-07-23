@@ -28,7 +28,7 @@ main = function(){
 
   # define nuber of components for pca and number of clusters for kmeans
   nComponents <- 2
-  nCluster <- 3
+  nCluster <- 10
 
   # pre-scale the data for pca
   PreProcessor <- caret::preProcess(x=df_data, method=c("center", "scale"), pcaComp = nComponents)
@@ -41,11 +41,7 @@ main = function(){
 
   # run kmeans analysis
   km <- pguXAI::pca.KMeans$new(n=nCluster, seed = 42, verbose = TRUE)
-  km$train(obj = df_pred, n = 100)
-
-  # plot results
-  km$probHist_plot() \%>\%
-    plot()
+  km$train(obj = df_pred)
 
   km$cluster_plot(obj = df_pred)
 
@@ -70,6 +66,13 @@ main = function(){
 
   print("Majority vote of the class label assignment:")
   km$predClass \%>\%
+    print()
+
+  print("Within cluster sum of squares analysis:")
+  km$df_withinss \%>\%
+    print()
+
+  km$tot_withinss \%>\%
     print()
 
   fin <- "done"
@@ -100,9 +103,6 @@ Sebastian Malkusch, \email{malkusch@med.uni-frankfurt.de}
 \item{\code{level}}{Returns the instancs variable level
 (character)}
 
-\item{\code{predProb}}{Returns th instance variable predProb
-(matrix)}
-
 \item{\code{predClass}}{Returns the instance variable predClass
 (factor)}
 
@@ -113,6 +113,12 @@ Sebastian Malkusch, \email{malkusch@med.uni-frankfurt.de}
 (tbl_df)}
 
 \item{\code{av_sil_width}}{Returns the instance variable av_sil_width
+(numeric)}
+
+\item{\code{av_withinss}}{Returns the instance variable av_withinss
+(tbl_df)}
+
+\item{\code{tot_withinss}}{Returns the instance variable tot_withinss
 (numeric)}
 
 \item{\code{verbose}}{Returns the instance variable verbose
@@ -127,10 +133,8 @@ Sebastian Malkusch, \email{malkusch@med.uni-frankfurt.de}
 \item \href{#method-finalize}{\code{pca.KMeans$finalize()}}
 \item \href{#method-print}{\code{pca.KMeans$print()}}
 \item \href{#method-train}{\code{pca.KMeans$train()}}
-\item \href{#method-cluster_kmeans}{\code{pca.KMeans$cluster_kmeans()}}
 \item \href{#method-cluster_statistics}{\code{pca.KMeans$cluster_statistics()}}
 \item \href{#method-silhouette_analysis}{\code{pca.KMeans$silhouette_analysis()}}
-\item \href{#method-probHist_plot}{\code{pca.KMeans$probHist_plot()}}
 \item \href{#method-cluster_plot}{\code{pca.KMeans$cluster_plot()}}
 \item \href{#method-silhouette_plot}{\code{pca.KMeans$silhouette_plot()}}
 \item \href{#method-clone}{\code{pca.KMeans$clone()}}
@@ -196,7 +200,7 @@ string
 \subsection{Method \code{train()}}{
 trains the model
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{pca.KMeans$train(obj = "tbl_df", n = 100)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{pca.KMeans$train(obj = "tbl_df")}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -205,39 +209,6 @@ trains the model
 \item{\code{obj}}{The data to be analyzed.
 Needs to be the result of a pca analysis.
 (tibble::tibble)}
-
-\item{\code{n}}{Indicates the number of training iterations
-(integer)}
-}
-\if{html}{\out{</div>}}
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-cluster_kmeans"></a>}}
-\if{latex}{\out{\hypertarget{method-cluster_kmeans}{}}}
-\subsection{Method \code{cluster_kmeans()}}{
-Performs iterative kMeans step.
-Not to run by the user.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{pca.KMeans$cluster_kmeans(
-  obj = "tbl_df",
-  classes_init = "factor",
-  n = "integer"
-)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{obj}}{The data to be analyzed.
-Needs to be the result of a pca analysis.
-(tibble::tibble)}
-
-\item{\code{classes_init}}{Contains the true class labels of the data in obj
-(factor)}
-
-\item{\code{n}}{Indicates the number of training iterations
-(integer)}
 }
 \if{html}{\out{</div>}}
 }
@@ -246,7 +217,7 @@ Needs to be the result of a pca analysis.
 \if{html}{\out{<a id="method-cluster_statistics"></a>}}
 \if{latex}{\out{\hypertarget{method-cluster_statistics}{}}}
 \subsection{Method \code{cluster_statistics()}}{
-Performs iterative kMeans step.
+Performs cluster analysis step..
 Not to run by the user.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{pca.KMeans$cluster_statistics(obj = "tbl_df")}\if{html}{\out{</div>}}
@@ -280,19 +251,6 @@ Needs to be the result of a pca analysis.
 (tibble::tibble)}
 }
 \if{html}{\out{</div>}}
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-probHist_plot"></a>}}
-\if{latex}{\out{\hypertarget{method-probHist_plot}{}}}
-\subsection{Method \code{probHist_plot()}}{
-Plots a histogram of Class probability.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{pca.KMeans$probHist_plot()}\if{html}{\out{</div>}}
-}
-
-\subsection{Returns}{
-(list)
 }
 }
 \if{html}{\out{<hr>}}

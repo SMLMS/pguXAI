@@ -18,4 +18,6 @@ Collate:
     'componentAnalysis_pca.R'
     'crossVal_rpart.R'
     'gridSearchCV_rpart.R'
+    'main_kmeans_screen.R'
     'pcaKMeans.R'
+    'screenKMeans.R'
