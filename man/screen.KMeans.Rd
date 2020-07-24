@@ -57,6 +57,16 @@ Sebastian Malkusch, \email{malkusch@med.uni-frankfurt.de}
 \item \href{#method-kmeansAnalysis}{\code{screen.KMeans$kmeansAnalysis()}}
 \item \href{#method-wcssAnalysis}{\code{screen.KMeans$wcssAnalysis()}}
 \item \href{#method-silhouetteAnalysis}{\code{screen.KMeans$silhouetteAnalysis()}}
+\item \href{#method-wcss_boxplot}{\code{screen.KMeans$wcss_boxplot()}}
+\item \href{#method-wcss_mean_plot}{\code{screen.KMeans$wcss_mean_plot()}}
+\item \href{#method-wcss_deriv1_plot}{\code{screen.KMeans$wcss_deriv1_plot()}}
+\item \href{#method-wcss_deriv2_plot}{\code{screen.KMeans$wcss_deriv2_plot()}}
+\item \href{#method-wcss_component_plot}{\code{screen.KMeans$wcss_component_plot()}}
+\item \href{#method-silhouette_boxplot}{\code{screen.KMeans$silhouette_boxplot()}}
+\item \href{#method-silhouette_mean_plot}{\code{screen.KMeans$silhouette_mean_plot()}}
+\item \href{#method-silhouette_deriv1_plot}{\code{screen.KMeans$silhouette_deriv1_plot()}}
+\item \href{#method-silhouette_deriv2_plot}{\code{screen.KMeans$silhouette_deriv2_plot()}}
+\item \href{#method-silhouette_component_plot}{\code{screen.KMeans$silhouette_component_plot()}}
 \item \href{#method-clone}{\code{screen.KMeans$clone()}}
 }
 }
@@ -184,6 +194,152 @@ Not to run by the user.
 \if{html}{\out{<div class="r">}}\preformatted{screen.KMeans$silhouetteAnalysis()}\if{html}{\out{</div>}}
 }
 
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-wcss_boxplot"></a>}}
+\if{latex}{\out{\hypertarget{method-wcss_boxplot}{}}}
+\subsection{Method \code{wcss_boxplot()}}{
+Creates a boxplot of the wcss vs the number of clusters
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{screen.KMeans$wcss_boxplot()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+Boxplot of wcss screening result
+(ggplot2::ggplot)
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-wcss_mean_plot"></a>}}
+\if{latex}{\out{\hypertarget{method-wcss_mean_plot}{}}}
+\subsection{Method \code{wcss_mean_plot()}}{
+Creates a plot of the screening result wcss mean values vs
+the number of clusters.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{screen.KMeans$wcss_mean_plot()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+Plot of WCSS mean.
+(ggplot2::ggplot)
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-wcss_deriv1_plot"></a>}}
+\if{latex}{\out{\hypertarget{method-wcss_deriv1_plot}{}}}
+\subsection{Method \code{wcss_deriv1_plot()}}{
+Creates a plot of the first derivation of the screening result of
+the wcss mean values vs the number.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{screen.KMeans$wcss_deriv1_plot()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+Plot of first derivation of WCSS.
+(ggplot2::ggplot)
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-wcss_deriv2_plot"></a>}}
+\if{latex}{\out{\hypertarget{method-wcss_deriv2_plot}{}}}
+\subsection{Method \code{wcss_deriv2_plot()}}{
+Creates a plot of the second derivation of the screening result of
+the wcss mean values vs the number.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{screen.KMeans$wcss_deriv2_plot()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+Plot of second derivation of WCSS.
+(ggplot2::ggplot)
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-wcss_component_plot"></a>}}
+\if{latex}{\out{\hypertarget{method-wcss_component_plot}{}}}
+\subsection{Method \code{wcss_component_plot()}}{
+summarizes the wcss results of the srceening analysis in a component plot.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{screen.KMeans$wcss_component_plot()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+Component plot
+(ggplot2::ggplot)
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-silhouette_boxplot"></a>}}
+\if{latex}{\out{\hypertarget{method-silhouette_boxplot}{}}}
+\subsection{Method \code{silhouette_boxplot()}}{
+Creates a boxplot of the silhouette scores vs the number of clusters
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{screen.KMeans$silhouette_boxplot()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+Boxplot of silhouette score screening result
+(ggplot2::ggplot)
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-silhouette_mean_plot"></a>}}
+\if{latex}{\out{\hypertarget{method-silhouette_mean_plot}{}}}
+\subsection{Method \code{silhouette_mean_plot()}}{
+Creates a plot of the screening result silhouette score mean values vs
+the number of clusters.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{screen.KMeans$silhouette_mean_plot()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+Plot of silhouette score mean.
+(ggplot2::ggplot)
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-silhouette_deriv1_plot"></a>}}
+\if{latex}{\out{\hypertarget{method-silhouette_deriv1_plot}{}}}
+\subsection{Method \code{silhouette_deriv1_plot()}}{
+Creates a plot of the first derivation of the screening result of
+the silhouette score mean values vs the number.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{screen.KMeans$silhouette_deriv1_plot()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+Plot of first derivation of silhouette score.
+(ggplot2::ggplot)
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-silhouette_deriv2_plot"></a>}}
+\if{latex}{\out{\hypertarget{method-silhouette_deriv2_plot}{}}}
+\subsection{Method \code{silhouette_deriv2_plot()}}{
+Creates a plot of the second derivation of the screening result of
+the silhouette score mean values vs the number.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{screen.KMeans$silhouette_deriv2_plot()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+Plot of second derivation of silhouette score.
+(ggplot2::ggplot)
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-silhouette_component_plot"></a>}}
+\if{latex}{\out{\hypertarget{method-silhouette_component_plot}{}}}
+\subsection{Method \code{silhouette_component_plot()}}{
+summarizes the silhouette score results of the srceening analysis in a component plot.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{screen.KMeans$silhouette_component_plot()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+Component plot
+(ggplot2::ggplot)
+}
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-clone"></a>}}
