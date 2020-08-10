@@ -67,6 +67,9 @@ Sebastian Malkusch, \email{malkusch@med.uni-frankfurt.de}
 \item{\code{df_pca}}{Returns the instance variable df_pca
 (tibble::tibble)}
 
+\item{\code{df_components}}{Returns the instance variable df_components
+(tibble::tibble)}
+
 \item{\code{nComp}}{Returns the instance varibale nComp
 (integer)}
 

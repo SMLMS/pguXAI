@@ -70,6 +70,7 @@ componentAnalysis.pca <- R6::R6Class("componentAnalysis.pca",
                                      private = list(
                                        .rslt_pca = "list",
                                        .df_pca = "tbl_df",
+                                       .df_components = "tbl_df",
                                        .nComp = "integer",
                                        .verbose = "logical"
                                      ),#private
@@ -88,6 +89,12 @@ componentAnalysis.pca <- R6::R6Class("componentAnalysis.pca",
                                        #' (tibble::tibble)
                                        df_pca = function(){
                                          return(private$.df_pca)
+                                       },
+                                       #' @field df_components
+                                       #' Returns the instance variable df_components
+                                       #' (tibble::tibble)
+                                       df_components = function(){
+                                         return(private$.df_components)
                                        },
                                        #' @field nComp
                                        #' Returns the instance varibale nComp
@@ -155,10 +162,14 @@ componentAnalysis.pca <- R6::R6Class("componentAnalysis.pca",
                                          private$.rslt_pca <- df_scaled %>%
                                            FactoMineR::PCA(ncp = self$nComp, scale.unit = FALSE, graph = FALSE)
                                          lst_pred <- predict(self$rslt_pca, df_scaled)
+                                         private$.df_components <- lst_pred$coord %>%
+                                           as.data.frame()
+
 
                                          pc_seq <- seq(self$nComp) %>%
                                            lapply(function(x) sprintf("pc.%i", x)) %>%
                                            unlist()
+                                         colnames(private$.df_components) <- pc_seq
                                          df_data <- lst_pred$coord %>%
                                            as.data.frame() %>%
                                            dplyr::summarise_if(is.numeric, sd) %>%

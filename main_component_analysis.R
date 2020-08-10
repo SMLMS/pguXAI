@@ -1,5 +1,6 @@
 library(tidyverse)
 library(pguXAI)
+library(GGally)
 
 main = function(){
   # load data set and remove class labels
@@ -29,8 +30,15 @@ main = function(){
 
   ca$contrib_barplot()
 
-  fin <- "done"
-  fin
+  # ca$df_components %>%
+  df_data %>%
+    #dplyr::mutate(Dim.5 = Dim.1 * 2) %>%
+    GGally::ggpairs(axisLabels = "none") +
+    ggplot2::theme_bw() +
+    ggplot2::labs(title = "Raw data correlation matrix")
+
+  # fin <- "done"
+  # fin
 }
 
 main()
