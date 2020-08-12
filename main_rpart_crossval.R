@@ -2,6 +2,7 @@ library(tidyverse)
 library(rpart)
 library(rpart.plot)
 library(caret)
+library(gridExtra)
 source(file = "rpart_predictor.R", local = TRUE)
 
 fileName <- "~/Documents/Code/R/pguXAI/ActualDataForClassification.csv"
@@ -77,14 +78,16 @@ df_model_splits
 #############
 # plot figure
 #############
-df_splits %>%
+p <- df_splits %>%
   ggplot2::ggplot() +
-  ggplot2::geom_density(mapping = aes(x=splits, group = variable, color = variable, fill = variable), alpha = 0.3, show.legend = TRUE) +
-  ggplot2::geom_vline(data = df_model_splits, mapping=aes(group = variable, xintercept=splits, linetype = model)) +
-  # ggplot2::geom_vline(data = df_gmm_splits, mapping=aes(group = feature, xintercept=splits), linetype = 1) +
+  ggplot2::geom_density(mapping = aes(x=splits, group = variable, color = variable, fill = variable), alpha = 0.3, show.legend = FALSE) +
+  ggplot2::geom_vline(data = df_model_splits, mapping=aes(group = variable, xintercept=splits, linetype = model),show.legend = FALSE) +
   ggplot2::facet_wrap(~variable, ncol = 1, scales = "free_y") +
   ggplot2::scale_y_continuous(breaks = scales::pretty_breaks(n = 3)) +
   ggplot2::theme_bw() +
   ggthemes::scale_color_colorblind() +
   ggthemes::scale_fill_colorblind()
 
+figure <- gridExtra::grid.arrange(p, p, p, ncol = 3)
+
+save(p, file = "/home/malkusch/Dokumente/revisions/xiao-2019/rpart_splits.RData")

@@ -4,7 +4,7 @@ library(rpart.plot)
 library(caret)
 source(file = "rpart_predictor.R", local = TRUE)
 
-fileName <- "~/Documents/Code/R/pguXAI/ActualDataForClassification.csv"
+fileName <- "~/code/r/pguXAI/ActualDataForClassification.csv"
 pain_data <- readr::read_csv(fileName) %>%
   dplyr::mutate(Clusters = as.factor(Clusters))
 
